@@ -76,6 +76,7 @@ your registry ──>│        or             │──> contrast_categories.xl
 | `contrast_features.py` | The feature space. Imported by training **and** inference so the two cannot drift. |
 | `provenance.py` | The reproducibility stamp. Imported by both, for the same reason. |
 | `make_demo_data.py` | Synthetic inputs, so the repo is runnable with no data. |
+| `compare_classifiers.py` | Head-to-head: distilled model vs lexicon rules on identical held-out studies, with a selective-prediction table. Decides which classifier to deploy. |
 
 ## What is learned, and what deliberately is not
 
