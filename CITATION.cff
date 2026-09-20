@@ -23,3 +23,44 @@ keywords:
   - text classification
   - reproducibility
   - GEO
+references:
+  - type: article
+    title: "scBaseCount: An AI agent-curated, standardized, auto-updated single-cell data repository"
+    authors:
+      - family-names: "Youngblut"
+        given-names: "N. D."
+      - family-names: "Carpenter"
+        given-names: "C."
+      - family-names: "Nayebnazar"
+        given-names: "A."
+      - family-names: "Adduri"
+        given-names: "A."
+      - family-names: "Shah"
+        given-names: "R."
+      - family-names: "Ricci-Tam"
+        given-names: "C."
+      - family-names: "Prashar"
+        given-names: "J."
+      - family-names: "Ilango"
+        given-names: "R."
+      - family-names: "Teyssier"
+        given-names: "N."
+      - family-names: "Konermann"
+        given-names: "S."
+      - family-names: "Hsu"
+        given-names: "P. D."
+      - family-names: "Dobin"
+        given-names: "A."
+      - family-names: "Burke"
+        given-names: "D. P."
+      - family-names: "Goodarzi"
+        given-names: "H."
+      - family-names: "Roohani"
+        given-names: "Y. H."
+    journal: "Cell"
+    volume: 189
+    issue: 19
+    start: 5932
+    year: 2026
+    doi: "10.1016/j.cell.2026.08.025"
+    notes: "Prior work. Provides the confidence/justification validation discipline used here; its per-record ontology annotation approach is deliberately not used -- see the README section Relationship to prior work."

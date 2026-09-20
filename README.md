@@ -117,6 +117,45 @@ probabilities.
 Before trusting any run, `python selftest_classifier.py` — exit 0 means this bundle still
 reproduces its frozen predictions on this machine.
 
+## Relationship to prior work
+
+This work began as an extension of **scBaseCount** (Youngblut et al. 2026), which curates a
+single-cell repository by having an LLM agent system, SRAgent, annotate SRA records with
+ontology-grounded fields. It is no longer an extension of it, and the divergence is deliberate
+in some places and a consequence of scale in others. Recording which is which:
+
+**What transfers — the validation discipline.** Every call from the LLM labelling stage carries a
+`confidence` level drawn from a fixed vocabulary *and* a free-text `justification`, so a reader
+can judge whether a confidence score means what they need it to mean rather than taking it on
+faith. Agreement is reported stratified by the model's own confidence, which is what licenses a
+high-confidence-only sensitivity analysis. `docs/labelling_spec.md` sets out the protocol.
+
+**What deliberately does not transfer — per-record ontology annotation.** SRAgent annotates
+*records* with organism, tissue and disease grounded in Uberon/MONDO. A perturbation category is
+not a property of a record; it is a property of the **difference between two arms**. Within one
+series, `hypoxia 24 h vs hypoxia 0 h` is *environment* while `dosR-deletion hypoxia vs WT hypoxia`
+is *genetic*, and every sample in both contrasts carries "hypoxia" in its own metadata.
+Per-sample annotation cannot produce the contrast label, so there is no ontology grounding, no
+vector search and no agent hierarchy here.
+
+**Where the architecture inverts.** scBaseCount tunes its prompt against a hand-curated gold
+standard and deliberately does not train a model, applying the LLM to every record indefinitely.
+This pipeline does the opposite: it calls the LLM once and distils the result into a local
+scikit-learn model. That is a scale judgement, not a disagreement — ~600 contrasts against their
+~40,000 records, and a requirement that re-scoring be offline, free and deterministic. It is also
+why the reproducibility apparatus in `docs/REPRODUCIBILITY.md` exists at all: once a model rather
+than a prompt is the artefact, the question becomes whether that artefact still behaves as it did
+when fitted.
+
+**A known limitation this creates.** `docs/labelling_spec.md` names "keep multiple values when a
+record cannot be disambiguated" as a design choice carried over from scBaseCount, via a
+`secondary_category` field for contrasts whose arms differ in two categories at once. The shipped
+pipeline does not implement it: `train_classifier.py` fits a single `primary_category` and
+`classify_offline.py` emits one label per contrast, so a genuinely two-category contrast is forced
+to one. The rule-based path (`classify_rules.py`) retains a partial signal — `n_categories_matched`
+and `all_categories_matched` flag the ambiguity for review — but nothing downstream preserves a
+second label. Restoring it means a multi-label model, not a configuration change.
+
 ## Tests
 
 ```bash
