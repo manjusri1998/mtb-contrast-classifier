@@ -20,7 +20,7 @@ provenance stamp and a frozen acceptance fixture — see
 ## Install
 
 ```bash
-git clone https://github.com/<owner>/mtb-contrast-classifier
+git clone https://github.com/manjusri1998/mtb-contrast-classifier
 cd mtb-contrast-classifier
 python -m venv .venv && . .venv/bin/activate
 pip install -r requirements.txt
@@ -130,7 +130,8 @@ features), and strict scoring refuses with exit 2.
 
 ## Citation
 
-See [CITATION.cff](CITATION.cff). Fill in the author and repository fields before publishing.
+Anbarasu, M. *mtb-contrast-classifier* (2026). https://github.com/manjusri1998/mtb-contrast-classifier
+ORCID [0009-0004-5463-4356](https://orcid.org/0009-0004-5463-4356). Machine-readable metadata in [CITATION.cff](CITATION.cff).
 
 ## License
 

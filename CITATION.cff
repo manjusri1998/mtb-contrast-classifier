@@ -10,13 +10,13 @@ abstract: >-
   a provenance stamp and a frozen acceptance fixture so that its behaviour can be
   re-verified on another machine or at a later date.
 authors:
-  - family-names: "<TODO>"
-    given-names: "<TODO>"
-    orcid: "https://orcid.org/<TODO>"
+  - family-names: "Anbarasu"
+    given-names: "Manjushri"
+    orcid: "https://orcid.org/0009-0004-5463-4356"
 version: "1.0.0"
 date-released: "2026-09-20"
 license: MIT
-repository-code: "https://github.com/<TODO-owner>/mtb-contrast-classifier"
+repository-code: "https://github.com/manjusri1998/mtb-contrast-classifier"
 keywords:
   - Mycobacterium tuberculosis
   - transcriptomics
