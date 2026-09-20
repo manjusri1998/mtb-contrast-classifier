@@ -1,0 +1,38 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pytest
+      - name: Test (synthetic data, no network, no API key)
+        run: pytest tests/ -v
+      - name: Demonstrate the full CLI cycle
+        run: |
+          python make_demo_data.py --out demo
+          python train_classifier.py --labels demo/contrast_categories.xlsx \
+              --comparisons demo/comparison_registry.csv --cache demo/geo_cache \
+              --out model.joblib
+          python selftest_classifier.py --write-fixture --model model.joblib \
+              --comparisons demo/comparison_registry.csv --cache demo/geo_cache
+          python selftest_classifier.py --model model.joblib --cache demo/geo_cache
+          python classify_offline.py --model model.joblib \
+              --comparisons demo/comparison_registry.csv --cache demo/geo_cache \
+              --no-fetch --strict-provenance --out scored.xlsx

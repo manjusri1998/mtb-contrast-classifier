@@ -1,0 +1,14 @@
+# What the code needs to run. Deliberately loose.
+#
+# The exact versions ONE PARTICULAR MODEL was fitted under are written to
+# requirements-lock.txt by train_classifier.py at fit time, and are embedded in the
+# model bundle itself. Use that file, not this one, to reproduce a specific model.
+scikit-learn>=1.3
+numpy>=1.24
+scipy>=1.10
+pandas>=2.0
+joblib>=1.3
+openpyxl>=3.1
+
+# stage 1 (LLM labelling) only -- not needed to train, self-test or score
+anthropic>=0.40; extra == "label"

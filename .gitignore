@@ -1,0 +1,24 @@
+# Inputs you supply; never committed (see docs/INPUTS.md)
+comparison_registry.csv
+contrast_categories.xlsx
+geo_cache/
+geo_cache.tar.gz
+*.pkl
+
+# Fitted artefacts: regenerate them, do not commit them here.
+# In your own working copy keep the model, its manifest, its lock file and its
+# fixture/ together -- see docs/REPRODUCIBILITY.md.
+*.joblib
+requirements-lock.txt
+training_manifest.json
+training_report.txt
+fixture/
+demo/
+*.xlsx
+!docs/*.xlsx
+
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.DS_Store

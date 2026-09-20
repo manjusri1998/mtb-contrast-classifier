@@ -1,0 +1,24 @@
+category,subcategory,pattern,tiers
+infection,intracellular,\bmacrophage|\bmdm\b|\bthp[- ]?1\b|\braw ?264|\bj774|\bbmdm\b|\bphagocy|\bintracellular\b|\binfect(ed|ion)\b|\bco[- ]?culture,any
+infection,animal,\bmouse\b|\bmice\b|\bmurine\b|\bguinea pig|\brabbit\b|\bmacaque|\bin ?vivo\b|\bgranuloma|\blung\b|\bspleen\b,any
+infection,clinical sample,\bsputum\b|\bpatient|\bclinical (isolate|strain|sample)|\bex ?vivo\b|\bbal\b|\bcavity\b,any
+genetic,knockout,\bdelta[ _]?rv|\u0394|\bdelta\b|\bknock[ -]?out\b|\b(ko|dko)\b|\bmutant\b|\bmut\b|::|\btransposon|\btn[- ]?mutant|\bdisrupt(ed|ion)\b|\bdeletion\b|\bnull\b,name
+genetic,overexpression,\boverexpress|\bover[- ]?expr|\binduc(ed|ible) expression\b|\btet[- ]?(on|off)\b|\bativ\b|\bptet\b|\bhsp60\b|\bcomplement(ed|ation)\b|\bplasmid\b|\bepisomal\b,name
+nutrition,carbon,\bglycerol\b|\bglucose\b|\bdextrose\b|\bacetate\b|\bpropionate\b|\bcholesterol\b|\bfatty acid|\boleate\b|\bpalmit|\bcarbon source|\bsuccinate\b|\bpyruvate\b|\blactate\b,any
+nutrition,nitrogen/nitrate,\bnitrate\b|\bnitrite\b|\bammoni|\bglutamin|\baspara|\bnitrogen source|\burea\b,any
+nutrition,phosphate,\bphosphate\b|\bpi[- ]?limit|\bphosphorus\b,any
+nutrition,potassium,\bpotassium\b|\bk\+ ?(limit|deplet)|\bkcl\b,any
+nutrition,iron,\biron\b|\bfe\b|\bferric\b|\bferrous\b|\bmycobactin\b|\bsiderophore\b|\bdipyridyl\b|\bdeferox,any
+nutrition,copper,\bcopper\b|\bcu\b|\bcuso4\b|\bcucl,any
+nutrition,zinc,\bzinc\b|\bzn\b|\bznso4\b|\btpen\b,any
+nutrition,starvation,\bstarv|\bnutrient (limit|deplet)|\bpbs\b|\bminimal medi|\bsauton|\bmiddlebrook 7h9 without|\bcarbon[- ]?free,any
+environment,hypoxia,\bhypoxi|\banaerob|\banoxi|\bwayne\b|\boxygen (deplet|limit|shift)|\bnon[- ]?replicating persist|\bnrp\b|\bdormanc|\breaerat|\breoxygenat|\bstanding culture|\bsealed,any
+environment,pH,\bph ?[0-9]|\bacid(ic|ification)?\b|\balkaline\b|\blow ?ph\b|\bph ?stress,any
+environment,oxidative stress,\boxidative stress|\bredox stress,any
+environment,nitrosative stress,\bnitrosative|\bnitric oxide stress|\brni\b,any
+environment,heat/cold,\bheat ?shock\b|\bheat stress|\b42 ?c\b|\bcold ?shock|\b4 ?c\b|\btemperature shift,any
+environment,cell-envelope stress,\bcell ?(wall|envelope) stress|\bsurface stress|\bdetergent stress,any
+environment,biofilm,\bbiofilm\b|\bpellicle\b,any
+genetic,overexpression,\bpmv\d+|\bpmv261\b|\bpsmt3\b|\bvector\b|\bempty vector\b|\bptet\b,name
+environment,dormancy/reaeration,\bresus(citat\w*)?\b|\brevival\b|\bregrow\w*\b|\brecovery from (dormanc|hypoxi),any
+genetic,knockout,"\bdevoid of\b|\bdeleted\b|\bdelet\w+ (of|strain)\b|\bdisruption of\b|\bd(?:k|el)[a-z]{2,6}\d*\b",name

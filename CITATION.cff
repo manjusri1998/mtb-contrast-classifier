@@ -1,0 +1,25 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "mtb-contrast-classifier: reproducible perturbation-category labelling for Mycobacterium tuberculosis expression contrasts"
+abstract: >-
+  A two-stage classifier that assigns each differential-expression contrast in a
+  multi-study Mycobacterium tuberculosis transcriptome atlas to one of five
+  perturbation categories (genetic, drug, environment, nutrition, infection).
+  Stage 1 labels a training set once with an LLM; stage 2 distils those labels into
+  a local scikit-learn model that runs offline thereafter. Every fitted model carries
+  a provenance stamp and a frozen acceptance fixture so that its behaviour can be
+  re-verified on another machine or at a later date.
+authors:
+  - family-names: "<TODO>"
+    given-names: "<TODO>"
+    orcid: "https://orcid.org/<TODO>"
+version: "1.0.0"
+date-released: "2026-09-20"
+license: MIT
+repository-code: "https://github.com/<TODO-owner>/mtb-contrast-classifier"
+keywords:
+  - Mycobacterium tuberculosis
+  - transcriptomics
+  - text classification
+  - reproducibility
+  - GEO
