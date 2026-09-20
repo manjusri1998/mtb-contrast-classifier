@@ -129,3 +129,37 @@ def test_feature_module_edit_is_caught(trained, tmp_path):
     run([os.path.join(d, "classify_offline.py"), "--model", "model.joblib",
          "--comparisons", "demo/comparison_registry.csv", "--cache", "demo/geo_cache",
          "--no-fetch", "--strict-provenance", "--out", "x.xlsx"], cwd=d, expect=2)
+
+
+def test_rules_classifier_runs(trained):
+    """classify_rules.py is the no-API alternative to stage 1 and depends on the arm-difference
+    feature columns. It is covered here because a contrast_features change that drops them
+    breaks this script without touching the model path at all."""
+    import pandas as pd
+    run([script("classify_rules.py"),
+         "--comparisons", "demo/comparison_registry.csv",
+         "--cache", "demo/geo_cache", "--use-arm-diff",
+         "--out", "rules.xlsx"], cwd=trained)
+    xl = pd.ExcelFile(os.path.join(trained, "rules.xlsx"))
+    assert "full" in xl.sheet_names
+    assert len(xl.parse("full")) > 0
+
+
+def test_selftest_compares_every_feature_column():
+    """Guard against a new feature column silently escaping Level B's comparison."""
+    import importlib.util as iu
+
+    def load(name):
+        spec = iu.spec_from_file_location(name, script(name + ".py"))
+        m = iu.module_from_spec(spec)
+        spec.loader.exec_module(m)
+        return m
+
+    cfx_, st_ = load("contrast_features"), load("selftest_classifier")
+    import pandas as pd
+    reg = pd.DataFrame([dict(study_id="GSE900001", comparison_id="a_vs_b",
+                             technology="rnaseq")])
+    produced = set(cfx_.build_features(reg, "nonexistent_cache").columns) - set(st_.KEY)
+    missing = produced - set(st_.COMPARE_COLS)
+    assert not missing, ("contrast_features emits %s, which selftest_classifier.COMPARE_COLS "
+                         "does not check" % sorted(missing))

@@ -89,6 +89,107 @@ def varying_vocabulary(blob, max_groups=60):
     return " | ".join(" ".join(sorted(g - common)) for g in groups)
 
 
+# --- arm difference from the contrast name / registry conditions --------------------------------
+
+_SPLIT_VS = re.compile(r"_vs_|\bvs\b", re.I)
+_TOKEN = re.compile(r"[a-z0-9.+]+")
+
+
+def _side_tokens(s):
+    return set(_TOKEN.findall(str(s).lower().replace("_", " ").replace("-", " ")))
+
+
+def arm_diff(comparison_id, test_condition=None, control_condition=None):
+    """Tokens unique to each arm. The category is a property of the difference, so this is the
+    text a rule should match against: in 'H37Rv_Cholesterol_Rifampicin vs H37Rv_Glycerol_
+    Rifampicin' the rifampicin is background on both arms and the difference is the carbon
+    source. Prefers the registry's test/control strings; falls back to splitting the name.
+    """
+    if isinstance(test_condition, str) and isinstance(control_condition, str):
+        lt, rt = _side_tokens(test_condition), _side_tokens(control_condition)
+    else:
+        parts = _SPLIT_VS.split(str(comparison_id), maxsplit=1)
+        if len(parts) < 2:
+            return _side_tokens(comparison_id), set()
+        lt, rt = _side_tokens(parts[0]), _side_tokens(parts[1])
+    return lt - rt, rt - lt
+
+
+def sample_name_index(blob):
+    """source_name/title -> that sample's characteristic text, for decoding contrast names.
+
+    Many series build their contrast names out of sample names: GSE68856's 'KO_SDS_vs_KO_LOG_37'
+    is 'KO_SDS_*' against 'KO_LOG_37.*', and each of those samples carries 'stress: SDS' /
+    'stress: Log phase'. Prefix-matching the two sides of the name against this index recovers
+    the arms' real metadata without needing recorded arm membership.
+    """
+    idx = []
+    for v in blob["samples"].values():
+        chars = "; ".join(v.get("characteristics_ch1", []))
+        for f in ("source_name_ch1", "title"):
+            for name in v.get(f, []):
+                if name:
+                    idx.append((_TOKEN.findall(name.lower().replace("_", " ").replace("-", " ")),
+                                chars))
+    return idx
+
+
+GENERIC_SIDE = {"control", "ctrl", "con", "untreated", "mock", "reference", "ref", "paired",
+                "channel", "none", "baseline", "wt", "parent"}
+
+
+def arm_metadata(comparison_id, idx, sep_re=None, max_sets=2):
+    """Characteristic text for each arm, found by token-prefix match on sample names.
+
+    Two refusals, both necessary. A side whose tokens are all generic control words matches
+    half the series ('..._vs_Control' would union every strain in it and manufacture a
+    difference that is not there), and a side matching more than `max_sets` distinct
+    characteristic strings has not been resolved to an arm at all. In both cases return
+    nothing so the caller falls through to the contrast name.
+    """
+    sep_re = sep_re or _SPLIT_VS
+    parts = sep_re.split(str(comparison_id), maxsplit=1)
+    if len(parts) < 2:
+        return "", ""
+    out = []
+    for side in parts[:2]:
+        q = _TOKEN.findall(side.lower().replace("_", " ").replace("-", " "))
+        if q and all(t in GENERIC_SIDE or t.isdigit() for t in q):
+            return "", ""
+        hits = set()
+        for toks, chars in idx:
+            if not (q and chars and len(toks) >= len(q)):
+                continue
+            # exact on all but the last query token; the last may be a prefix, because sample
+            # names carry replicate suffixes ('KO_LOG_37' must match sample 'KO_LOG_37.1')
+            if toks[:len(q) - 1] == q[:-1] and toks[len(q) - 1].startswith(q[-1]):
+                hits.add(chars)
+        if len(hits) > max_sets:
+            return "", ""
+        out.append(" | ".join(sorted(hits)))
+    return out[0], out[1]
+
+
+def metadata_diff(left_chars, right_chars):
+    """Characteristic VALUES that differ between the arms (key-aware, so a shared
+    'genotype: groEL1 KO' drops out and only 'stress: SDS' vs 'stress: Log phase' remains)."""
+    def kv(text):
+        d = {}
+        for part in text.split("|"):
+            for item in part.split(";"):
+                k, _, v = item.partition(":")
+                if v.strip():
+                    d.setdefault(k.strip().lower(), set()).add(v.strip())
+        return d
+    L, R = kv(left_chars), kv(right_chars)
+    out = []
+    for k in sorted(set(L) | set(R)):
+        lv, rv = L.get(k, set()), R.get(k, set())
+        if lv != rv:
+            out.append("%s: %s / %s" % (k, "+".join(sorted(lv)) or "-", "+".join(sorted(rv)) or "-"))
+    return " | ".join(out)
+
+
 # --- feature frame ----------------------------------------------------------------------------
 
 def _norm(s):
@@ -107,6 +208,7 @@ def build_features(registry, cache_dir, study_registry=None):
         if gse not in blobs:
             blob = load_blob(gse, cache_dir)
             blobs[gse] = {
+                "idx": sample_name_index(blob),
                 "aeration": series_aeration(blob),
                 "vocab": series_vocabulary(blob),
                 "vocab_varying": varying_vocabulary(blob),
@@ -115,6 +217,9 @@ def build_features(registry, cache_dir, study_registry=None):
                 "n_samples": len(blob["samples"]),
             }
         b = blobs[gse]
+        lchars, rchars = arm_metadata(r.comparison_id, b["idx"])
+        dl, dr = arm_diff(r.comparison_id, getattr(r, "test_condition", None),
+                          getattr(r, "control_condition", None))
         cond = ""
         for col in ("test_condition", "control_condition"):
             v = getattr(r, col, None)
@@ -131,6 +236,11 @@ def build_features(registry, cache_dir, study_registry=None):
             # separate sources, so a rule can prefer factual condition labels over the
             # series summary -- the summary describes the study's motivation, not the contrast
             "name_text": _norm(r.comparison_id),
+            "diff_left_text": " ".join(sorted(dl)),
+            "diff_right_text": " ".join(sorted(dr)),
+            "diff_text": " ".join(sorted(dl | dr)),
+            "arm_meta_diff_text": metadata_diff(lchars, rchars),
+            "arm_meta_resolved": int(bool(lchars and rchars)),
             "cond_text": cond.strip(),
             "vocab_text": vocab,
             "vocab_varying_text": b["vocab_varying"],

@@ -49,8 +49,13 @@ META = "fixture_meta.json"
 
 KEY = ["study_id", "comparison_id"]
 # every column build_features emits that feeds the model or explains a difference
+# Every column build_features emits that feeds the model or explains a difference. Kept in
+# sync with contrast_features deliberately: a new feature column that is not listed here is a
+# column Level B would not notice changing.
 COMPARE_COLS = [cfx.TEXT_COL] + cfx.CAT_COLS + ["name_text", "cond_text", "vocab_text",
                                                 "vocab_varying_text", "summary_text",
+                                                "diff_left_text", "diff_right_text", "diff_text",
+                                                "arm_meta_diff_text", "arm_meta_resolved",
                                                 "n_samples", "has_series_metadata"]
 
 

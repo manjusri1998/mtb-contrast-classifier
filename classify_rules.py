@@ -11,7 +11,12 @@ its vocabulary covers the new file, and when it doesn't cover something it says 
 guessing. It is also a CSV you can extend in a text editor.
 
 Two-tier matching, because the category is a property of the DIFFERENCE between arms:
-  tier 0  the ARM DIFFERENCE -- tokens present on one arm and absent from the other, taken from
+  tier 0a the ARM METADATA DIFFERENCE -- each side of the contrast name is prefix-matched against
+          the series' sample names, and only the characteristic VALUES that differ between the two
+          arms are matched. This decodes a series' own abbreviations from its own metadata:
+          GSE68856's 'KO_CS_vs_KO_LOG_37' resolves to 'stress: Cold shock / Log phase', so CS is
+          read as cold shock rather than guessed at                                       -> high
+  tier 0b the ARM DIFFERENCE -- tokens present on one arm and absent from the other, taken from
           the registry's test/control strings or by splitting the name on _vs_. In
           'H37Rv_Cholesterol_Rifampicin vs H37Rv_Glycerol_Rifampicin' the rifampicin is on both
           arms and the difference is the carbon source                                   -> high
@@ -90,6 +95,47 @@ def differing_gene_identity(left, right, test_txt, ctrl_txt, known=()):
     return None, None
 
 
+POINT_MUT = re.compile(r"^[a-z]\d{1,4}[a-z]$", re.I)          # i27f, k125a, r47e
+DESIGNATION = re.compile(r"^[a-z]{1,6}\d{1,5}[a-z]?$", re.I)   # ASR0, ASR1, CDC1551, Rv1720c
+GT_TEMPLATE = re.compile(r"genotype[_ ](?P<gt>.+?)[_ ]condition[_ ]factor[_ ](?P<cf>.+)$", re.I)
+
+
+def template_genetic(comparison_id, known=()):
+    """The RNA-seq registry naming convention, read structurally.
+
+    Names of the form 'genotype_A_condition_factor_B_vs_genotype_C_condition_factor_D' encode
+    the two arms explicitly. When the differing part is an allele code (i27f = Ile27Phe) or a
+    strain designation that no lexicon explains, the contrast varies genotype. Values that a
+    lexicon DOES explain (a carbon source, a drug) are left alone -- those are conditions.
+    """
+    parts = re.split(r"_vs_", str(comparison_id), maxsplit=1, flags=re.I)
+    if len(parts) != 2:
+        return None, None
+    m1, m2 = GT_TEMPLATE.match(parts[0].strip()), GT_TEMPLATE.match(parts[1].strip())
+    if not (m1 and m2):
+        return None, None
+    for field in ("gt", "cf"):
+        a, b = m1.group(field).lower(), m2.group(field).lower()
+        if a == b:
+            continue
+        toks = [t for t in re.findall(r"[a-z0-9.]+", a + " " + b)
+                if not any(rx.search(t) for rx in known)]
+        if any(POINT_MUT.match(t) for t in toks):
+            return "mutant", "%s vs %s (amino-acid substitution code)" % (a, b)
+        # PI rule: strain designations that differ while the genotype field is IDENTICAL are
+        # mutants of one background, so the contrast varies genotype. Requires the differing
+        # token to look like a designation (letters then digits: ASR1, CDC1551), never a plain
+        # word -- an unexplained WORD in this field is an unknown condition, not a strain.
+        if (field == "cf" and m1.group("gt").lower() == m2.group("gt").lower()
+                and any(DESIGNATION.match(t) for t in toks)
+                and not any(rx.search(a) or rx.search(b) for rx in known)):
+            return "mutant", "%s vs %s (strain designations, genotype field identical)" % (a, b)
+    # Deliberately NO general fallback on 'this field differs and no lexicon explains it'.
+    # Measured at 0.897 vs 0.930 when unguarded: an unexplained condition_factor is usually an
+    # unknown CONDITION. The two branches above fire only on designation-shaped tokens.
+    return None, None
+
+
 def structural_genetic(left, right):
     """Genotype evidence that comes from the STRUCTURE of the arm difference, not a keyword.
 
@@ -108,12 +154,20 @@ def structural_genetic(left, right):
             informative = [t for t in b
                            if t not in CONTROL_TOKENS and not TIME_TOKENS.match(t)]
             if informative:
-                return "knockout", "wt vs %s" % "+".join(sorted(informative)[:3])
+                # an amino-acid substitution code is a point mutant, not a knockout; anything
+                # that is not designation-shaped is a genotype contrast of unstated kind
+                if any(POINT_MUT.match(t) for t in informative):
+                    sub = "mutant"
+                elif any(DESIGNATION.match(t) for t in informative):
+                    sub = "mutant"
+                else:
+                    sub = "unspecified"
+                return sub, "wt vs %s" % "+".join(sorted(informative)[:3])
     return None, None
 
 
 def load_category_lexicon(path):
-    lex = pd.read_csv(path)
+    lex = pd.read_csv(cfx.resolve_path(path))
     if "tiers" not in lex.columns:
         lex["tiers"] = "any"
     return [(re.compile(p, re.I), c, s, t)
@@ -147,6 +201,8 @@ def match_categories(text, cat_lex, drug_lex, tier="name"):
         cat = hint or "drug"
         sub = {"drug": "antibiotics", "environment": "oxidative stress",
                "nutrition": "vitamin C"}.get(cat, "antibiotics")
+        if cat == "environment" and "detergent" in str(agent):
+            sub = "cell-envelope stress"
         hits.setdefault(cat, sub)
         ev.setdefault(cat, agent)
     return hits, dc, agent, ev
@@ -167,16 +223,21 @@ def main():
                          "Measured WORSE than the default on the reviewed labels (0.902 vs "
                          "0.907) -- kept because it should win once test/control strings are "
                          "filled for more than the RNA-seq rows.")
-    ap.add_argument("--use-structural", action="store_true",
-                    help="opt-in: strain-difference and wild-type-on-one-arm rules. Measured "
-                         "worse than the default (0.889); each rule was right where it fired "
-                         "but displaced correct calls through precedence.")
+    ap.add_argument("--no-structural", action="store_true",
+                    help="ablation: drop the strain-difference and wild-type-on-one-arm rules. "
+                         "Costs 0.002 (0.949 -> 0.947). These measured WORSE than off (0.889) "
+                         "until they were confined to the fallback path; the earlier damage was "
+                         "precedence injection, not the rules themselves.")
     ap.add_argument("--no-summary-tier", action="store_true",
                     help="ablation: never fall back to the series title/summary. Measured much "
                          "worse (0.803): the summary tier is 80%% accurate, not 0%%.")
     ap.add_argument("--no-demote-shared-genotype", action="store_true",
                     help="ablation: keep a genetic call even when the genotype term appears on "
                          "both arms and a different category is supported by arm-unique tokens")
+    ap.add_argument("--no-template-genetic", action="store_true",
+                    help="ablation: stop reading allele codes (i27f, k125a) out of the "
+                         "genotype_X_condition_factor_Y naming convention. Costs 0.007 (0.937 "
+                         "-> 0.930) on the reviewed labels.")
     ap.add_argument("--use-gene-identity", action="store_true",
                     help="opt-in: when both arms carry a genotype marker but different gene "
                          "identifiers, call it genetic (dosT_KO vs dosS_KO)")
@@ -200,7 +261,8 @@ def main():
 
     rows = []
     for r in X.itertuples():
-        tiers = [("arm_difference", r.diff_text, "high"),
+        tiers = [("arm_metadata", r.arm_meta_diff_text, "high"),
+                 ("arm_difference", r.diff_text, "high"),
                  ("contrast_name", (r.name_text + " " + r.cond_text).strip(), "medium"),
                  ("varying_sample_vocabulary", r.vocab_varying_text, "medium"),
                  ("all_sample_vocabulary", r.vocab_text, "low"),
@@ -211,8 +273,10 @@ def main():
             tiers = [t for t in tiers if t[0] != "series_summary"]
         left = set(str(r.diff_left_text).split())
         right = set(str(r.diff_right_text).split())
-        struct_sub, struct_ev = (structural_genetic(left, right) if args.use_structural
-                                 else (None, None))
+        struct_sub, struct_ev = ((None, None) if args.no_structural
+                                 else structural_genetic(left, right))
+        if not args.no_template_genetic and not struct_sub:
+            struct_sub, struct_ev = template_genetic(r.comparison_id, known=known_rx)
         if args.use_gene_identity and not struct_sub:
             struct_sub, struct_ev = differing_gene_identity(
                 left, right, str(r.diff_left_text) + " " + str(r.name_text),
@@ -222,35 +286,46 @@ def main():
         for tname, ttext, tconf in tiers:
             h, d, a, e = match_categories(
                 ttext, cat_lex, drug_lex,
-                tier="name" if tname in ("arm_difference", "contrast_name") else tname)
+                tier="name" if tname in ("arm_metadata", "arm_difference", "contrast_name")
+                else tname)
             dc, agent = dc or d, agent or a
             if h:
                 hits, ev, tier, conf = h, e, tname, tconf
                 break
 
-        # The PI's double-testing rule, applied to the case where it bites most often: if the
-        # genotype evidence is present on BOTH arms it is background, so a category supported by
-        # tokens unique to one arm outranks it. 'Rv1720c.mutant_Cholesterol vs
-        # Rv1720c.mutant_Glycerol' is the mutant held constant while the carbon source varies.
-        if not args.no_demote_shared_genotype and hits.get("genetic"):
-            hit_txt = str(ev.get("genetic", "")).strip().lower()
-            shared = (hit_txt and " " not in hit_txt
-                      and hit_txt in str(r.name_text).lower() + " " + str(r.cond_text).lower()
-                      and hit_txt not in (str(r.diff_left_text) + " " + str(r.diff_right_text)).lower())
-            if shared:
+        # The PI's double-testing rule, in general form: a perturbation present on BOTH arms is
+        # background for that contrast, so a category supported by arm-unique tokens outranks a
+        # category whose only evidence is shared. 'Rv1720c.mutant_Cholesterol vs
+        # Rv1720c.mutant_Glycerol' is carbon source; 'sigE_SDS vs wt_SDS' is genotype.
+        if not args.no_demote_shared_genotype and hits and tier in ("contrast_name",
+                                                                    "arm_difference"):
+            whole = (str(r.name_text) + " " + str(r.cond_text)).lower()
+            arm_unique = (str(r.diff_left_text) + " " + str(r.diff_right_text)).lower()
+            shared = set()
+            for cat, _sub in hits.items():
+                hit_txt = str(ev.get(cat, "")).strip().lower()
+                if (hit_txt and " " not in hit_txt and hit_txt in whole
+                        and hit_txt not in arm_unique):
+                    shared.add(cat)
+            if shared and len(shared) == len(hits):
                 h2, d2, a2, e2 = match_categories(r.diff_text, cat_lex, drug_lex, tier="name")
-                alt = [c for c in precedence if c in h2 and c != "genetic"]
+                gsub, gev = structural_genetic(left, right)
+                if gsub and "genetic" not in h2:
+                    h2, e2 = dict(h2, genetic=gsub), dict(e2, genetic=gev)
+                alt = [c for c in precedence if c in h2 and c not in shared]
                 if alt:
                     hits = {c: h2[c] for c in alt}
                     ev = {c: e2.get(c) for c in alt}
-                    dc, agent = dc or d2, agent or a2
-                    tier, conf = "arm_difference_over_shared_genotype", "high"
+                    dc, agent = d2 or dc, a2 or agent
+                    tier, conf = "arm_difference_over_shared_evidence", "high"
 
-        if struct_sub and "genetic" not in hits:
+        # Structural/template genetic evidence is a FALLBACK, not a competitor: injecting it
+        # into a hit set that already has condition evidence lets genetic win on precedence and
+        # measured 0.929 vs 0.937. It applies only where nothing else explained the contrast.
+        if struct_sub and not hits:
             hits["genetic"] = struct_sub
             ev["genetic"] = struct_ev
-            if tier == "no_match":
-                tier, conf = "arm_structure", "high"
+            tier, conf = "arm_structure", "high"
 
         ordered = [c for c in precedence if c in hits]
         if len(ordered) > 1:
@@ -320,8 +395,11 @@ def main():
             vs.to_excel(xl, sheet_name="vs_study")
 
     if args.gold:
-        sheets = pd.read_excel(args.gold, sheet_name=None)
-        gsheet = sheets.get("full", sheets.get("categories"))
+        if str(args.gold).lower().endswith(".csv"):
+            gsheet = pd.read_csv(args.gold)
+        else:
+            sheets = pd.read_excel(args.gold, sheet_name=None)
+            gsheet = sheets.get("full", sheets.get("categories"))
         g = gsheet[["gse", "comparison_id", "perturbation_category"]].rename(
             columns={"perturbation_category": "reviewed"})
         g["reviewed"] = g.reviewed.astype(str).str.strip().str.lower()

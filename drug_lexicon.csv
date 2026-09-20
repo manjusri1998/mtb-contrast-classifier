@@ -16,13 +16,14 @@ moxifloxacin|\bmxf\b|\bmoxi\b|levofloxacin|\blvf\b|\blvx\b|ciprofloxacin|\bcip\b
 mitomycin|mithramycin|\bmtm\b|\buv\b|\bmms\b|bleomycin|hydroxyurea|\bhu\b|nitrofuran,DNA damage,dna_damaging_agent,drug,general
 bedaquiline|\bbdq\b|\btmc207\b|\bq203\b|telacebec|qcrb|clofazimine|\bcfz\b|thioridazine|chlorpromazine|\bcccp\b|\bdnp\b|nigericin|valinomycin|\bkcn\b|cyanide|sodium azide|rotenone|uncoupl|protonophore,energy metabolism,energy_metabolism_inhibitor,drug,general
 para[- ]?amino ?salicyl|\bpas\b|sulfamethoxazole|\bsmx\b|sulfanilamide|sulfadiazine|trimethoprim|\btmp\b|dapsone,folate pathway,folate_pathway_inhibitor,drug,general
-"\bsds\b|sodium dodecyl|polymyxin|chlorhexidine|cerulenin|deoxycholate|triton|tween.{0,6}shock|detergent",membrane/detergent,membrane_disruptor,drug,general
+\bpolymyxin\b|\bchlorhexidine\b|\bcationic peptide|\bcerulenin\b|\bnisin\b,membrane-active antimicrobial,membrane_disruptor,drug,general
 h2o2|hydrogen peroxide|menadione|plumbagin|diamide|paraquat|cumene|\bt[- ]?bhp\b|deta[/ ]?no|\bgsno\b|\bsnp\b|sodium nitrite|nitric oxide|\bno\b donor,oxidant/NO donor,redox_or_oxidative_agent,environment,general
 verapamil|reserpine|piperine|efflux inhibitor,efflux inhibitor,efflux_pump_inhibitor,drug,general
 5[- ]?fluorouracil|\b5fu\b|azauracil|nicotinamide|\bnam\b|benzamide|\bbza\b|amino acid analog|\bserine hydroxamate\b,antimetabolite,antimetabolite,drug,general
 pyrazinamide|\bpza\b|pyrazinoic,pyrazinamide,other_defined_mechanism,drug,general
-\bascorb|vitamin ?c\b|\bvit ?c\b,ascorbate/vitamin C,redox_or_oxidative_agent,nutrition,general
+\bascorb|vitamin ?c\b|\bvit ?c\b,ascorbate/vitamin C,redox_or_oxidative_agent,environment,general
 \bcdri[- ]?\d*\w*\b,CDRI-5g,unknown_mechanism,drug,GSE29166
 \batd[- ]?\d*\b,ATD-3169,redox_or_oxidative_agent,drug,GSE61618
 \b(dem|dmm|wr)\b,antifolate (DEM/DMM/WR),folate_pathway_inhibitor,drug,GSE55979
 \b[mp]fd\b,MFD/PFD,unknown_mechanism,drug,GSE45811
+\bsds\b|sodium dodecyl|\btriton\b|\btween\b|deoxycholate|\bdoc\b|\bdetergent\b,detergent (SDS/Triton/deoxycholate/Tween),membrane_disruptor,environment,general

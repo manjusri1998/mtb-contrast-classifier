@@ -17,8 +17,10 @@ environment,pH,\bph ?[0-9]|\bacid(ic|ification)?\b|\balkaline\b|\blow ?ph\b|\bph
 environment,oxidative stress,\boxidative stress|\bredox stress,any
 environment,nitrosative stress,\bnitrosative|\bnitric oxide stress|\brni\b,any
 environment,heat/cold,\bheat ?shock\b|\bheat stress|\b42 ?c\b|\bcold ?shock|\b4 ?c\b|\btemperature shift,any
-environment,cell-envelope stress,\bcell ?(wall|envelope) stress|\bsurface stress|\bdetergent stress,any
+environment,cell-envelope stress,\bcell ?(wall|envelope) stress|\bsurface stress|\bdetergent stress|\bsds\b|sodium dodecyl|\btriton\b|\btween\b|deoxycholate,any
 environment,biofilm,\bbiofilm\b|\bpellicle\b,any
 genetic,overexpression,\bpmv\d+|\bpmv261\b|\bpsmt3\b|\bvector\b|\bempty vector\b|\bptet\b,name
 environment,dormancy/reaeration,\bresus(citat\w*)?\b|\brevival\b|\bregrow\w*\b|\brecovery from (dormanc|hypoxi),any
 genetic,knockout,"\bdevoid of\b|\bdeleted\b|\bdelet\w+ (of|strain)\b|\bdisruption of\b|\bd(?:k|el)[a-z]{2,6}\d*\b",name
+environment,hypoxia,\blow aeration\b|\breduced aeration\b|\bpre.?hypoxic\b|\bstanding culture\b,any
+environment,stationary phase,\bstationary (phase|culture)\b|\bstat phase\b|\bnon.?replicating persist,any
